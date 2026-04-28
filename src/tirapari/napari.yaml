@@ -1,0 +1,21 @@
+name: tirapari
+display_name: tirapari
+contributions:
+  commands:
+    - id: tirapari.make_sample_data
+      python_name: tirapari._sample_data:make_sample_data
+      title: Load Sample Image
+
+    - id: tirapari.segment_widget
+      python_name: tirapari._widget:SegmentationWidget
+      title: Segmentation Widget
+
+  sample_data:
+    - command: tirapari.make_sample_data
+      display_name: Sample Cells Image
+      key: tirapari_sample_cells
+
+  widgets:
+    - command: tirapari.segment_widget
+      display_name: Segmentation
+      autogenerate: false
