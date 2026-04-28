@@ -179,9 +179,9 @@ class SegmentationWidget(QWidget):
         self._watershed_panel.setVisible(method == "Watershed")
 
     def _set_status(self, msg: str, error: bool = False) -> None:
-        colour = "#cc0000" if error else "#007700"
+        color = "#cc0000" if error else "#007700"
         self._status_label.setText(
-            f'<span style="color:{colour}">{msg}</span>'
+            f'<span style="color:{color}">{msg}</span>'
         )
 
     # ------------------------------------------------------------------

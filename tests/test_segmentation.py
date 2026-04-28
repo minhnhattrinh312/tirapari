@@ -106,8 +106,8 @@ def test_watershed_segment_returns_labels(sample_image):
 def test_watershed_segment_min_distance(sample_image):
     labels_close = watershed_segment(sample_image, min_distance=5)
     labels_far = watershed_segment(sample_image, min_distance=50)
-    # Fewer, larger markers with large min_distance → fewer or equal segments
-    assert labels_far.max() <= labels_close.max() or True  # monotonicity hint
+    # Fewer seeds with large min_distance → fewer or equal segments
+    assert labels_far.max() <= labels_close.max()
 
 
 @pytest.mark.parametrize(
