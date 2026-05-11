@@ -1,0 +1,4 @@
+enum
+onnxruntime
+onnxruntime-gpu
+skimage

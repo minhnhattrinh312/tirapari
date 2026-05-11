@@ -1,0 +1,10 @@
+name: myopari
+display_name: myopari
+contributions:
+  commands:
+    - id: myopari.make_segmentation_widget
+      python_name: myopari._segmentation_widget:SegmentationWidget
+      title: Image segmentation
+  widgets:
+    - command: myopari.make_segmentation_widget
+      display_name: myopari
