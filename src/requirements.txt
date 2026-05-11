@@ -1,4 +1,5 @@
 enum
+numpy
 onnxruntime
 onnxruntime-gpu
 skimage

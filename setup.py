@@ -42,5 +42,5 @@ setup(
             "myopari = myopari:napari.yaml",
         ]
     },
-    package_data={"": ["*.yaml"], "myopari.saved_models": ["*"]},
+    package_data={"": ["*.yaml"], "myopari.Resources": ["*"]},
 )
