@@ -1,6 +1,6 @@
 """
 Authors:
-    Minh Nhat Trinh  
+    Minh Nhat Trinh
     Teresa Correia
 
 Created:
@@ -16,7 +16,22 @@ from .processors import SEG_module
 import datetime
 from magicgui import magic_factory
 import napari
-from qtpy.QtWidgets import QVBoxLayout, QSplitter, QHBoxLayout, QWidget, QPushButton, QTabWidget, QSpinBox, QDoubleSpinBox, QFormLayout, QComboBox, QLabel, QProgressBar, QRadioButton, QButtonGroup
+from qtpy.QtWidgets import (
+    QVBoxLayout,
+    QSplitter,
+    QHBoxLayout,
+    QWidget,
+    QPushButton,
+    QTabWidget,
+    QSpinBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QComboBox,
+    QLabel,
+    QProgressBar,
+    QRadioButton,
+    QButtonGroup,
+)
 
 
 from qtpy.QtCore import Qt, QThread, Signal
@@ -26,7 +41,6 @@ from napari.qt.threading import thread_worker
 from time import time
 from enum import Enum
 import numpy as np
-
 
 
 # this thread is used to update the progress bar
@@ -44,6 +58,7 @@ class BarThread(QThread):
         max (int): Upper bound of the progress range.
         value (int): Current progress position.
     """
+
     progressChanged = Signal(int)
 
     def __init__(self, parent=None):
@@ -56,14 +71,18 @@ class BarThread(QThread):
         percent = (self.value - self.min) / (self.max - self.min) * 100
         self.progressChanged.emit(int(percent))
 
+
 class SegModel(Enum):
     """Supported reconstruction modes."""
+
     TIRAMISU_ACDC = 0
     TIRAMISU_EMIDEC = 1
+
 
 class EdgeDevice(Enum):
     JETSON_NANO = 0
     RASBERRY_PI = 1
+
 
 class SegmentationWidget(QTabWidget):
 
@@ -77,24 +96,23 @@ class SegmentationWidget(QTabWidget):
         self.bar_thread_segmentation = BarThread(self)
         self.bar_thread_segmentation.progressChanged.connect(self.progressBar_segmentation.setValue)
 
-
     def setup_ui_segmentation(self):
         def add_section(_layout, _title):
             _layout.addWidget(QLabel(_title))
             _layout.addWidget(QSplitter(Qt.Vertical))
-        
+
         # Tab 1 - Basic settings and reconstruction
-        
+
         # i) add a tab widget
         self.params_widget_basic = QWidget()
         self.addTab(self.params_widget_basic, "Segmentation")
-        
+
         # ii) layout
         self.segmentation_layout = QVBoxLayout()
         self.segmentation_widget = QWidget()
         # self.basic_reconstruction_layout.addWidget(QLabel("Basic reconstruction"))
         self.segmentation_layout.addWidget(self.segmentation_widget)
-        
+
         self.choose_layer_widget_segmentation = choose_layer()
         self.choose_layer_widget_segmentation.call_button.visible = False
         self.add_magic_function(self.choose_layer_widget_segmentation, self.segmentation_layout)
@@ -108,15 +126,21 @@ class SegmentationWidget(QTabWidget):
         # remove space between Select image layer and settings
         self.createSettingsSegmentation(settings_layout)
         self.params_widget_basic.setLayout(self.segmentation_layout)
-        
-    
+
     def createSettingsSegmentation(self, slayout):
         self.edge_device = Combo_box(
-            "Edge device", initial=EdgeDevice.JETSON_NANO.value, choices=EdgeDevice, layout=slayout, write_function=self.set_segmentation_processor
+            "Edge device",
+            initial=EdgeDevice.JETSON_NANO.value,
+            choices=EdgeDevice,
+            layout=slayout,
+            write_function=self.set_segmentation_processor,
         )
         self.segmentation_model = Combo_box(
-            "Segmentation model", initial=SegModel.TIRAMISU_ACDC.value, choices=SegModel, 
-            layout=slayout, write_function=self.set_segmentation_processor
+            "Segmentation model",
+            initial=SegModel.TIRAMISU_ACDC.value,
+            choices=SegModel,
+            layout=slayout,
+            write_function=self.set_segmentation_processor,
         )
 
         self.myo_only = Settings(
@@ -141,11 +165,15 @@ class SegmentationWidget(QTabWidget):
         if "hold" in kwargs.keys() and fullname in self.viewer.layers:
 
             self.viewer.layers[fullname].data = image_values
-            self.viewer.layers[fullname].scale = scale
 
         else:
             layer = self.viewer.add_labels(
-                image_values, name=fullname, affine=self.affine,
+                image_values,
+                name=fullname,
+                affine=kwargs.get("affine"),
+                metadata=kwargs.get("metadata"),
+                translate=kwargs.get("translate"),
+                scale=scale,
             )
             return layer
 
@@ -161,9 +189,15 @@ class SegmentationWidget(QTabWidget):
 
         if image.data.ndim == 3 and image.data.shape[2] > 1:
             self.input_type = "3D"
-            self.imageRaw_name = image.name
-            self.affine = image.affine
-            print(self.affine)
+            # dict to store image data
+            self.image_data = {
+                "name": image.name,
+                "shape": image.data.shape,
+                "scale": image.scale,
+                "affine": image.affine,
+                "metadata": image.metadata,
+                "translate": image.translate,
+            }
             sz, sy, sx = image.data.shape
             print(sz, sy, sx)
             if not hasattr(self, "h_segmentation"):
@@ -171,7 +205,14 @@ class SegmentationWidget(QTabWidget):
             print(f"Selected image layer: {image.name}")
         else:
             self.input_type = "2D"
-            self.imageRaw_name = image.name
+            self.image_data = {
+                "name": image.name,
+                "shape": image.data.shape,
+                "scale": image.scale,
+                "affine": image.affine,
+                "metadata": image.metadata,
+                "translate": image.translate,
+            }
             sy, sx = image.data.shape
             print(sy, sx)
             if not hasattr(self, "h_segmentation"):
@@ -180,11 +221,12 @@ class SegmentationWidget(QTabWidget):
 
     def volume_segmentation(self):
 
-        self.scale_segmentation = self.viewer.layers[self.imageRaw_name].scale
+        # self.scale_segmentation = self.viewer.layers[self.imageRaw_name].scale
+
         def update_segmentation_image(stack):
 
-            imname = "segmentation_" + self.imageRaw_name
-            self.show_segmentation(stack, fullname=imname, scale=self.scale_segmentation, affine=self.affine)
+            imname = "segmentation_" + self.image_data["name"]
+            self.show_segmentation(stack, fullname=imname, **self.image_data)
             print("Segmentation completed")
 
         @thread_worker(
@@ -193,28 +235,29 @@ class SegmentationWidget(QTabWidget):
         def _segmentation():
             print("myocardium only: ", self.h_segmentation.myo_only)
             volume = self.get_image()
+            if self.input_type == "2D":
+                # add a new axis to the volume to make it 3D
+                volume = volume[np.newaxis, :, :]
             # tranpose the volume from (D, H, W) to (H, W, D)
             volume_transposed = volume.transpose(2, 1, 0)
 
             seg = self.h_segmentation.segment(volume_transposed)
             seg = seg.transpose(2, 1, 0)
-            
+
             return seg
 
         _segmentation()
 
-
-
     def get_image(self):
         try:
-            return self.viewer.layers[self.imageRaw_name].data
+            return self.viewer.layers[self.image_data["name"]].data
         except:
             raise (KeyError(r"Please select a valid image"))
 
     def set_segmentation_processor(self, *args):
 
         if hasattr(self, "h_segmentation"):
-            
+
             self.h_segmentation.model_name = self.segmentation_model.val
             self.h_segmentation.myo_only = self.myo_only.val
             self.h_segmentation.edge_device = self.edge_device.val
@@ -233,8 +276,6 @@ class SegmentationWidget(QTabWidget):
         else:
             print("Reset")
             self.h_segmentation = SEG_module()
-
-
 
     def add_magic_function(self, widget, _layout):
         """Attach a magicgui widget to the layout and auto-refresh layer list.
